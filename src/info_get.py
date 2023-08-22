@@ -172,7 +172,7 @@ class meterSort:
         time_val = now.time().strftime("%H:00:00")
         temp_val = temp
 
-        result_data = self.info_get.get_live_list(date_val, "11:00:00", temp)
+        result_data = self.info_get.get_live_list(date_val, time_val, temp)
         if result_data['data'] == ERRORCODE._NO_DATA:
             pass
         elif result_data['data'] == ERRORCODE._SEND_MSG_ERR:
