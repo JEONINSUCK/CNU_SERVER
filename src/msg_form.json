@@ -27,7 +27,7 @@
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "[date] [time] [temp]도 [ratio] 조건의 서버 리스트입니다."
+				"text": "*[date] [time]시 [temp]°C 이상 [ratio] 이상 조건의 서버 리스트입니다.*"
 			}
 		},
 		{
