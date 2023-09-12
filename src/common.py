@@ -2,7 +2,7 @@ from datetime import datetime
 import enum
 
 
-DEBUG_ENABLE = True
+debug_enable = True
 
 class ERRORCODE(enum.Enum):
     _SUCCESS = 1
@@ -34,7 +34,7 @@ class ERRORCODE(enum.Enum):
     _NO_DATA = 27
     
 def debugPrint(data):
-    if DEBUG_ENABLE:
+    if debug_enable:
         # get date & time
         now = datetime.now()
         today = now.date().strftime("%y-%m-%d")

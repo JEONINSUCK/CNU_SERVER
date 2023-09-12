@@ -48,7 +48,7 @@ class Bot:
         try:
             debugPrint("[+] Send ratio message...")
             # load approval message form
-            with open("msg_form.json", "rt", encoding='UTF8') as msg_f:
+            with open("src/msg_form.json", "rt", encoding='UTF8') as msg_f:
                 msg_form = json.load(msg_f)
 
                 # fill each data to msessage form
@@ -56,18 +56,19 @@ class Bot:
                 categorys = ["[date]", "[time]", "[temp]", "[ratio]"]
                 datas = [date, time, temp, ratio]
                 for category, data in zip(categorys, datas):
-                    msg_form['blocks'][1]['text']['text'] = msg_form['blocks'][1]['text']['text'].replace(category, data)
+                    msg_form['attachments'][0]['blocks'][1]['text']['text'] = msg_form['attachments'][0]['blocks'][1]['text']['text'].replace(category, data)
                 
                 # list field
-                msg_form['blocks'][3]['text']['text'] = "No\t이름\t동\t호\tMID\t온도\tratio1\tratio2\t전류\n"
+                msg_form['attachments'][0]['blocks'][3]['text']['text'] = "No\t\t이름\t\t동\t\t호\t\tMID\t\t온도\t\tratio1\t\tratio2\n\n\n"
+                i = 0
                 for live_data in live_datas:
-                    msg_form['blocks'][3]['text']['text'] += "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n\n".format(
-                                                            live_data['num'],live_data['name'],live_data['dong'],live_data['ho'],live_data['mid'], \
-                                                            live_data['temp'],live_data['ratio1'],live_data['ratio2'],live_data['ampare'])
-                
+                    msg_form['attachments'][0]['blocks'][3]['text']['text'] += "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\n\n".format(
+                                                            i,live_data['name'],live_data['dong'],live_data['ho'],live_data['mid'], \
+                                                            live_data['temp'],live_data['ratio1'],live_data['ratio2'])
+                    i = i + 1
                 # url set
                 if url != "":
-                    msg_form['blocks'][5]['elements'][0]['url'] = url
+                    msg_form['attachments'][0]['blocks'][5]['elements'][0]['url'] = url
 
                 self.sendMsg(msg_form)
                 debugPrint("[+] Send ratio message OK...")
@@ -87,17 +88,17 @@ class Bot:
                 categorys = ["[date]", "[time]", "[temp]", "[ratio] 이상"]
                 datas = [date, time, temp, ""]
                 for category, data in zip(categorys, datas):
-                    msg_form['blocks'][1]['text']['text'] = msg_form['blocks'][1]['text']['text'].replace(category, data)
+                    msg_form['attachments'][0]['blocks'][1]['text']['text'] = msg_form['attachments'][0]['blocks'][1]['text']['text'].replace(category, data)
                 
                 # list field
-                msg_form['blocks'][3]['text']['text'] = "No\t이름\tMID\t온도\n"
+                msg_form['attachments'][0]['blocks'][3]['text']['text'] = "No\t이름\tMID\t온도\n"
                 for live_data in live_datas:
-                    msg_form['blocks'][3]['text']['text'] += "{0}\t{1}\t{2}\t{3}\n\n".format(
+                    msg_form['attachments'][0]['blocks'][3]['text']['text'] += "{0}\t{1}\t{2}\t{3}\n\n".format(
                                                             live_data['num'],live_data['name'],live_data['mid'],live_data['temp'])
                 
                 # url set
                 if url != "":
-                    msg_form['blocks'][5]['elements'][0]['url'] = url
+                    msg_form['attachments'][0]['blocks'][5]['elements'][0]['url'] = url
 
                 self.sendMsg(msg_form)
                 debugPrint("[+] Send live message OK...")

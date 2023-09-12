@@ -2,10 +2,9 @@ from bs4 import BeautifulSoup
 from slack_bot import Bot
 import requests
 import json
-import schedule
+
 import time
-import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from common import *
 
 USERNAME = "admin"
@@ -14,7 +13,6 @@ DEFUALT_DAY = 1
 DEFUALT_TEMP = 45
 DEFUALT_RATIO = 1.0
 DEFUALT_CNT = 3
-
 
 class infoGet:
     def __init__(self):
@@ -43,7 +41,7 @@ class infoGet:
 
         
     def get_ratio_list(self, p_date, p_time, p_temp, p_ratio, p_did=""):
-        debugPrint("[+] Get Ratio list run...")
+        debugPrint(f"[+] Get {p_date} {p_time}시 Ratio list run...")
         keys = ['num', 'name', 'dong', 'ho', 'mid', 'time', 'temp', 'ratio1', 'ratio2', 'ampare']
 
         try:
@@ -51,8 +49,11 @@ class infoGet:
             res = requests.get(qeury, auth=self.auth)
             if res.status_code == 200:
                 result_list = self.cnu_parser(res, keys)
-
-                debugPrint("[+] Get Ratio list OK...")
+                if result_list == ERRORCODE._NO_DATA:
+                    # debugPrint("[+] NO Live data...")
+                    return { 'data' : ERRORCODE._NO_DATA }
+                
+                debugPrint(f"[+] Get {p_date} {p_time}시 Ratio list OK...")
                 return { 'data': result_list, 'url' : qeury}
             else:
                 debugPrint("[+] Response ERR: {0}...".format(res.status_code))
@@ -66,6 +67,7 @@ class infoGet:
     def get_live_list(self, p_date, p_time, p_temp, p_did=""):
         result_data = []
         debugPrint("[+] Get Live list run...")
+        debugPrint(f'date: {p_date}, time: {p_time}, temp: {p_temp}')
         keys = ['num', 'name', 'mid', 'time', 'temp']
 
         try:
@@ -73,6 +75,9 @@ class infoGet:
             res = requests.get(qeury, auth=self.auth)
             if res.status_code == 200:
                 result_list = self.cnu_parser(res, keys)
+                if result_list == ERRORCODE._NO_DATA:
+                    debugPrint("[+] NO Live data...")
+                    return { 'data' : ERRORCODE._NO_DATA }
 
                 for each_data in result_list:    
                     date_time = each_data['time'].split(" ")
@@ -124,21 +129,44 @@ class infoGet:
             print(f'cnu_parser function ERR: {e}')
             debugPrint("[-] CNU Parser FAIL...")
 
-    def post_list(self, p_mid, p_day=1):
+    def post_list(self, p_mid, p_time):
         form_data = {
             'p_mid' : p_mid,
-            'p_day' : p_day
+            'p_time' : p_time
         }
         
         try:
-            res = requests.post(self.detail_search_url, auth=self.auth, data=form_data)
-            res = json.loads(res.text)
+            res = requests.post(self.live_url, auth=self.auth, data=form_data)
+            res = json.loads(res.text.decode())
             if res['msg'] == 'success':
                 return res.get('data')
             else:
                 return -1
         except Exception as e:
             print(f'post_list function ERR: {e}')
+
+    def get_dcu_id(self, apt_name):
+        debugPrint("[+] get_dcu_id run...")
+        try:
+            qeury = f"{self.live_url}&p_did=&p_temp=48"
+            res = requests.get(qeury, auth=self.auth)
+            if res.status_code == 200:
+                bs = BeautifulSoup(res.text, 'html.parser')
+                try:
+                    # tag = bs.find('td', attrs={'class': 'tdBody'}).find('tbody')
+                    tag = bs.find('select', attrs={'name': 'p_did'})
+                    for items in tag.find_all('option'):
+                        dcu_info = items.get_text()
+                        if dcu_info.find(apt_name) != -1:
+                            debugPrint("[+] get_dcu_id OK...")
+                            return items['value']
+                        
+                except Exception as e:
+                    debugPrint("[-] HTML response has no body")
+                    return ERRORCODE._QUERY_FAIL
+        except Exception as e:
+            print(f'get_dcu_id function ERR: {e}')
+            debugPrint("[-] get_dcu_id FAIL...")
 
 class meterSort:
     def __init__(self):
@@ -171,6 +199,8 @@ class meterSort:
         date_val = now.date().strftime("%Y-%m-%d")
         time_val = now.time().strftime("%H:00:00")
         temp_val = temp
+        
+        # time_val = "17:00:00"
 
         result_data = self.info_get.get_live_list(date_val, time_val, temp)
         if result_data['data'] == ERRORCODE._NO_DATA:
@@ -180,38 +210,64 @@ class meterSort:
         else:
             self.slack_bot.sendLiveMsg(result_data['data'], date_val, time_val, str(temp_val), url=result_data['url'])
 
+    def list_apt_seq(self, apt_name, temp, ratio, day_cnt):
+        try:
+            result_data = []
+            mid_data = []
+            # get date & time
+            now = datetime.now()
+            temp_val = temp
+            ratio_val = ratio
+            dcu_id = self.info_get.get_dcu_id(apt_name)
+
+            for i in range(int(day_cnt)):
+                date_val = now - timedelta(days=i)
+                date_val = date_val.date().strftime("%Y%m%d")
+                for time_val in range(24):
+                    time_datas = self.info_get.get_ratio_list(p_did=dcu_id, p_date=date_val, p_time=time_val, 
+                                                            p_temp=temp_val, p_ratio=ratio_val)['data']
+                    if time_datas == ERRORCODE._NO_DATA:
+                        continue
+                    else:
+                        for time_data in time_datas:
+                            if time_data['mid'] in mid_data:
+                                continue
+                            else:
+                                mid_data.append(time_data['mid'])
+                                result_data.append(time_data)
+            if len(result_data) != 0:
+                self.slack_bot.sendRatioMsg(result_data, date_val, "0~23", str(temp_val), str(ratio_val))
+        except Exception as e:
+            print(f'list_apt_seq function ERR: {e}')
+            debugPrint("[-] List apartment sequence FAIL...")
+
     def run(self, temp, ratio):
-        debugPrint("[+] MeterSort Run...")
+        debugPrint("[+] CNU server sort Run...")
         try:
             # ration sequence run
             # self.ratio_monitor_seq(temp, ratio)
 
             # live sequence run
-            self.live_monitor_seq(48)
+            self.live_monitor_seq(temp)
 
 
-            debugPrint("[+] MeterSort Run OK...")
+            debugPrint("[+] CNU server sort OK...")
         except Exception as e:
-            debugPrint("[-] MeterSort FAIL...")
-            debugPrint(f"run function ERR: {e}")
+            debugPrint("[-] CNU server sort FAIL...")
+            debugPrint(f"CNU server sort ERR: {e}")
 
-
-def scheduler_th():
-    print("[+] Scheduler run...")
-    meter_sort = meterSort()
-
-    try:
-        schedule.every().hour.at(":02").do(meter_sort.run,DEFUALT_TEMP, DEFUALT_RATIO)
-        while(True):
-            schedule.run_pending()
-            time.sleep(10)
-    except KeyboardInterrupt:
-        print('Ctrl + C 중지 메시지 출력')
 
 if __name__ == '__main__':
     meter_sort = meterSort()
-    meter_sort.run(DEFUALT_TEMP, DEFUALT_RATIO)
+    info_get = infoGet()
+    # meter_sort.run(DEFUALT_TEMP, DEFUALT_RATIO)
+    p_mid = 'A0537049493'
+    p_time = '2023-08-25 16:00:00'
+    # print(info_get.post_list(p_mid, p_time))
+    print(info_get.get_dcu_id("명륜현대1차"))
+    # meter_sort.list_apt_seq("간석현대", 3)
 
+    
     # th_scheduler = threading.Thread(target=scheduler_th)
     # th_scheduler.start()
 
