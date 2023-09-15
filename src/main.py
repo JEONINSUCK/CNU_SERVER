@@ -67,6 +67,7 @@ async def webhook(request: Request):
                     input_data = body['text'].split(" ")
                     if len(input_data)  == 4:
                         meter_so.list_apt_seq(input_data[0], input_data[1], input_data[2], input_data[3])
+                        return {"status": f"{input_data[0]}, {input_data[1]}, {input_data[2]}, {input_data[3]}"}
                     else:
                         return {"status": f"input value wrong: {body['text']}"}    
                 else:

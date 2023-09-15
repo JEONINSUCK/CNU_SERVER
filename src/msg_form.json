@@ -1,7 +1,6 @@
 {
 	"attachments": [
 		{
-			"color": "#36a64f",
 			"blocks": [
 				{
 					"type": "section",
@@ -18,6 +17,13 @@
 					}
 				},
 				{
+					"type": "section",
+					"text": {
+						"type": "mrkdwn",
+						"text": ":red_siren:   *NEW*"
+					}
+				},
+				{
 					"type": "divider"
 				},
 				{
@@ -28,7 +34,21 @@
 					}
 				},
 				{
+					"type": "section",
+					"text": {
+						"type": "mrkdwn",
+						"text": ":blue_siren:   *BEFORE*"
+					}
+				},
+				{
 					"type": "divider"
+				},
+				{
+					"type": "section",
+					"text": {
+						"type": "mrkdwn",
+						"text": " "
+					}
 				},
 				{
 					"type": "actions",

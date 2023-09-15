@@ -1,5 +1,7 @@
 from bs4 import BeautifulSoup
 from slack_bot import Bot
+from urllib import parse
+import pandas as pd
 import requests
 import json
 
@@ -17,7 +19,7 @@ DEFUALT_CNT = 3
 class infoGet:
     def __init__(self):
         self.temp_cnt_url = "http://211.170.156.163/temp/temperatureCount.php?"
-        self.detail_search_url = "http://211.170.156.163/temp/json/procSelectInstantDay.php?"
+        self.detail_search_url = "http://211.170.156.163/temp/json/procSelectInstant.php"
         self.temp_meter_url = "http://211.170.156.163/temp/temperatureMeter.php?"
         self.emis_url = "http://management.scityplatform.co.kr/cnu/html/load_profile.html"
         self.ratio_url = "http://211.170.156.163/temp/RDB2_ratio.php?"
@@ -98,7 +100,26 @@ class infoGet:
             print(f'get_live_list function ERR: {e}')
             debugPrint("[-] Get Live list FAIL...")
 
+    def get_detail_temp_list(self, mid, date):
+        debugPrint("[+] Get Detail Temp list run...")
+        payload = {
+                "p_mid" : mid,
+                "p_time" : date
+            }
+        try:
+            res = requests.post(self.detail_search_url, data=payload, auth=self.auth)
+            if res.status_code == 200:
+                res = json.loads(res.text)
+                if res['msg'] == 'success':
+                    detail_datas = res['data']
+                    debugPrint("[+] Get Detail Temp list OK...")
+                    return { 'data' : detail_datas }
+                else:
+                    return { 'data' : ERRORCODE._NO_POST_DATA }
 
+        except Exception as e:
+            print(f'get_detail_temp_list function ERR: {e}')
+            debugPrint("[-] Get Detail Temp list FAIL...")
 
     def cnu_parser(self, res, keys):
         debugPrint("[+] CNU Parser run...")
@@ -168,6 +189,29 @@ class infoGet:
             print(f'get_dcu_id function ERR: {e}')
             debugPrint("[-] get_dcu_id FAIL...")
 
+    def dupli_chk(self, src):
+        try:
+            debugPrint("[+] Duplication Check Run...")
+            read_data = pd.read_excel("data/inspection_list.xlsx", sheet_name='점검리스트', usecols='F,M')
+            # read_datas = read_datas.set_index('교체전')
+            result = {'new': [], 'before': []}
+            if len(src) != 0:
+                for target in src:
+                    filter_data = read_data[read_data['교체전'].str.contains(target['mid'], na=False)]
+                    if len(filter_data) != 0:
+                        result['before'].append(target)
+                    else:
+                        result['new'].append(target)
+                
+                debugPrint("[+] Duplication Check OK...")
+                return result
+            
+            return ERRORCODE._DUPLI_FAIL
+        
+        except Exception as e:
+            print(f'dupli_chk function ERR: {e}')
+            debugPrint("[-] Duplication Check FAIL...")
+
 class meterSort:
     def __init__(self):
         self.info_get = infoGet()
@@ -208,7 +252,9 @@ class meterSort:
         elif result_data['data'] == ERRORCODE._SEND_MSG_ERR:
             pass
         else:
-            self.slack_bot.sendLiveMsg(result_data['data'], date_val, time_val, str(temp_val), url=result_data['url'])
+            filter_data = self.info_get.dupli_chk(result_data['data'])
+            debugPrint(filter_data)
+            self.slack_bot.sendLiveMsg(filter_data, date_val, time_val, str(temp_val), url=result_data['url'])
 
     def list_apt_seq(self, apt_name, temp, ratio, day_cnt):
         try:
@@ -236,10 +282,21 @@ class meterSort:
                                 mid_data.append(time_data['mid'])
                                 result_data.append(time_data)
             if len(result_data) != 0:
-                self.slack_bot.sendRatioMsg(result_data, date_val, "0~23", str(temp_val), str(ratio_val))
+                filter_data = self.info_get.dupli_chk(result_data)
+                debugPrint(filter_data)
+                self.slack_bot.sendRatioMsg(filter_data, date_val, "0~23", str(temp_val), str(ratio_val))
         except Exception as e:
             print(f'list_apt_seq function ERR: {e}')
             debugPrint("[-] List apartment sequence FAIL...")
+
+    def test(self, apt_name, temp, ratio):
+        
+        time_val = 10
+        date_val = datetime.now().date().strftime("%Y%m%d")
+        dcu_id = self.info_get.get_dcu_id(apt_name)
+        time_datas = self.info_get.get_ratio_list(p_did=dcu_id, p_date=date_val, p_time=time_val, 
+                                                            p_temp=temp, p_ratio=ratio)['data']
+        return time_datas
 
     def run(self, temp, ratio):
         debugPrint("[+] CNU server sort Run...")
@@ -264,10 +321,22 @@ if __name__ == '__main__':
     p_mid = 'A0537049493'
     p_time = '2023-08-25 16:00:00'
     # print(info_get.post_list(p_mid, p_time))
-    print(info_get.get_dcu_id("명륜현대1차"))
-    # meter_sort.list_apt_seq("간석현대", 3)
+    # print(info_get.get_dcu_id("명륜현대1차"))
+    # meter_sort.list_apt_seq("푸른마을신안실크밸리1차", 32, 2.0, 1)
+    meter_sort.live_monitor_seq(38)
 
+    # info_get.get_detail_temp_list('A0537089514', '2023-09-12 10:00:00')
+    # tmp_data = meter_sort.test("계룡리슈빌", 30, 1.0)
+    # print(len(info_get.get_detail_temp_list(tmp_data[0]['mid'], tmp_data[0]['time'])['data']))
     
     # th_scheduler = threading.Thread(target=scheduler_th)
     # th_scheduler.start()
 
+    # now = datetime.now()
+    # date_val = now.date().strftime("%Y-%m-%d")
+    # time_val = now.time().strftime("%H:00:00")
+    # print(info_get.get_live_list(date_val, time_val, 43))
+    # sample_data = info_get.get_live_list('2023-09-14', '17:00:00', 40)['data']
+    # sample_data.append({'mid' : 'A0537096323'})
+    # sample_data.append({'mid' : 'A0537129033'})
+    # print(info_get.dupli_chk(sample_data))

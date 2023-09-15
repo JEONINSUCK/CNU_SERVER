@@ -32,6 +32,8 @@ class ERRORCODE(enum.Enum):
     _TITLE_DUPLI_ERR = 25
     _PARAM_ERR = 26
     _NO_DATA = 27
+    _NO_POST_DATA = 28
+    _DUPLI_FAIL = 29
     
 def debugPrint(data):
     if debug_enable:
