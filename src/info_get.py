@@ -192,12 +192,14 @@ class infoGet:
     def dupli_chk(self, src):
         try:
             debugPrint("[+] Duplication Check Run...")
-            read_data = pd.read_excel("data/inspection_list.xlsx", sheet_name='점검리스트', usecols='F,M')
-            # read_datas = read_datas.set_index('교체전')
+            sample1 = pd.read_excel("data/계량기_점검_교체_리스트_통합.xlsx", sheet_name='점검리스트', usecols='F,M')
+            sample2 = pd.read_excel("data/계량기_점검_교체_리스트_통합.xlsx", sheet_name='요청리스트', usecols='D,H')
+            read_data = pd.concat([sample1, sample2])
+
             result = {'new': [], 'before': []}
             if len(src) != 0:
                 for target in src:
-                    filter_data = read_data[read_data['교체전'].str.contains(target['mid'], na=False)]
+                    filter_data = read_data[read_data['미터 ID'].str.contains(target['mid'], na=False)]
                     if len(filter_data) != 0:
                         result['before'].append(target)
                     else:
@@ -284,7 +286,9 @@ class meterSort:
             if len(result_data) != 0:
                 filter_data = self.info_get.dupli_chk(result_data)
                 debugPrint(filter_data)
-                self.slack_bot.sendRatioMsg(filter_data, date_val, "0~23", str(temp_val), str(ratio_val))
+                self.slack_bot.sendRatioMsg(filter_data, now.date().strftime("%Y%m%d"), f"{day_cnt}일 치", str(temp_val), str(ratio_val))
+            else:
+                self.slack_bot.sendRatioMsg({'new': [], 'before': []}, now.date().strftime("%Y%m%d"), f"{day_cnt}일 치", str(temp_val), str(ratio_val))
         except Exception as e:
             print(f'list_apt_seq function ERR: {e}')
             debugPrint("[-] List apartment sequence FAIL...")
@@ -323,7 +327,7 @@ if __name__ == '__main__':
     # print(info_get.post_list(p_mid, p_time))
     # print(info_get.get_dcu_id("명륜현대1차"))
     # meter_sort.list_apt_seq("푸른마을신안실크밸리1차", 32, 2.0, 1)
-    meter_sort.live_monitor_seq(38)
+    # meter_sort.live_monitor_seq(38)
 
     # info_get.get_detail_temp_list('A0537089514', '2023-09-12 10:00:00')
     # tmp_data = meter_sort.test("계룡리슈빌", 30, 1.0)
@@ -336,7 +340,7 @@ if __name__ == '__main__':
     # date_val = now.date().strftime("%Y-%m-%d")
     # time_val = now.time().strftime("%H:00:00")
     # print(info_get.get_live_list(date_val, time_val, 43))
-    # sample_data = info_get.get_live_list('2023-09-14', '17:00:00', 40)['data']
-    # sample_data.append({'mid' : 'A0537096323'})
-    # sample_data.append({'mid' : 'A0537129033'})
-    # print(info_get.dupli_chk(sample_data))
+    sample_data = info_get.get_live_list('2023-09-16', '11:00:00', 40)['data']
+    sample_data.append({'mid' : 'A0537096323'})
+    sample_data.append({'mid' : 'A0537129033'})
+    print(info_get.dupli_chk(sample_data))

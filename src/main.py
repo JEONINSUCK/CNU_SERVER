@@ -50,6 +50,7 @@ async def webhook(request: Request):
         global temp
         web_t = webTool()
         meter_so = meterSort()
+        th_live_seq = threading.Thread(target=meter_so.run, args=(temp, ratio))
         header = web_t.getHeader(request)
         parm = web_t.getParm(request)
         body = await getBody(request)
@@ -58,7 +59,7 @@ async def webhook(request: Request):
             if body['command'] == '/settemp':
                 if body['text'] != '':
                     temp = int(body['text'])
-                    meter_so.run(temp, ratio)
+                    th_live_seq.start()
                     return f"temp set success: {temp}"
                 else:
                     return {"status": f"temp set fail: {temp}"}
@@ -66,7 +67,9 @@ async def webhook(request: Request):
                 if body['text'] != '':
                     input_data = body['text'].split(" ")
                     if len(input_data)  == 4:
-                        meter_so.list_apt_seq(input_data[0], input_data[1], input_data[2], input_data[3])
+                        th_list_apt_seq = threading.Thread(target=meter_so.list_apt_seq, args=(input_data[0], input_data[1], input_data[2], input_data[3]))
+                        th_list_apt_seq.start()
+                        # meter_so.list_apt_seq(input_data[0], input_data[1], input_data[2], input_data[3])
                         return {"status": f"{input_data[0]}, {input_data[1]}, {input_data[2]}, {input_data[3]}"}
                     else:
                         return {"status": f"input value wrong: {body['text']}"}    
@@ -74,10 +77,12 @@ async def webhook(request: Request):
                     return {"status": f"input value wrong: {body['text']}"}
         except Exception as e:
             print(body)
+            debugPrint(f'body process err: {e}')
             return {"status": "body structure error"}
         
 
     except Exception as err:
+        print(await getBody(request))
         debugPrint(f'could not print REQUEST: {err}')
         return {"status": "ERR"}
 
