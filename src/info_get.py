@@ -39,11 +39,11 @@ class infoGet:
 
             return result_list
         except Exception as e:
-            print(f'get_cnt_list function ERR: {e}')
+            logger.error(f'get_cnt_list function ERR: {e}')
 
         
     def get_ratio_list(self, p_date, p_time, p_temp, p_ratio, p_did=""):
-        debugPrint(f"[+] Get {p_date} {p_time}시 Ratio list run...")
+        logger.debug(f"[+] Get {p_date} {p_time}시 Ratio list run...")
         keys = ['num', 'name', 'dong', 'ho', 'mid', 'time', 'temp', 'ratio1', 'ratio2', 'ampare']
 
         try:
@@ -52,24 +52,24 @@ class infoGet:
             if res.status_code == 200:
                 result_list = self.cnu_parser(res, keys)
                 if result_list == ERRORCODE._NO_DATA:
-                    # debugPrint("[+] NO Live data...")
+                    # logger.info("[+] NO Live data...")
                     return { 'data' : ERRORCODE._NO_DATA }
                 
-                debugPrint(f"[+] Get {p_date} {p_time}시 Ratio list OK...")
+                logger.debug(f"[+] Get {p_date} {p_time}시 Ratio list OK...")
                 return { 'data': result_list, 'url' : qeury}
             else:
-                debugPrint("[+] Response ERR: {0}...".format(res.status_code))
+                logger.error("[-] Response ERR: {0}...".format(res.status_code))
                 return ERRORCODE._SEND_MSG_FAIL
             
         except Exception as e:
-            print(f'get_ratio_list function ERR: {e}')
-            debugPrint("[-] Get Ratio list FAIL...")
+            logger.error(f'get_ratio_list function ERR: {e}')
+            logger.error("[-] Get Ratio list FAIL...")
             
 
     def get_live_list(self, p_date, p_time, p_temp, p_did=""):
         result_data = []
-        debugPrint("[+] Get Live list run...")
-        debugPrint(f'date: {p_date}, time: {p_time}, temp: {p_temp}')
+        logger.debug("[+] Get Live list run...")
+        logger.debug(f'date: {p_date}, time: {p_time}, temp: {p_temp}')
         keys = ['num', 'name', 'mid', 'time', 'temp']
 
         try:
@@ -78,7 +78,7 @@ class infoGet:
             if res.status_code == 200:
                 result_list = self.cnu_parser(res, keys)
                 if result_list == ERRORCODE._NO_DATA:
-                    debugPrint("[+] NO Live data...")
+                    logger.debug("[+] NO Live data...")
                     return { 'data' : ERRORCODE._NO_DATA }
 
                 for each_data in result_list:    
@@ -87,21 +87,21 @@ class infoGet:
                         result_data.append(each_data)
 
                 if len(result_data) != 0:    
-                    debugPrint("[+] Get Live list OK...")
+                    logger.debug("[+] Get Live list OK...")
                     return { 'data': result_data, 'url' : qeury}
                 else:
-                    debugPrint("[+] NO Live data...")
+                    logger.debug("[+] NO Live data...")
                     return { 'data' : ERRORCODE._NO_DATA }
             else:
-                debugPrint("[+] Response ERR: {0}...".format(res.status_code))
+                logger.error("[-] Response ERR: {0}...".format(res.status_code))
                 return ERRORCODE._SEND_MSG_FAIL
             
         except Exception as e:
-            print(f'get_live_list function ERR: {e}')
-            debugPrint("[-] Get Live list FAIL...")
+            logger.error(f'get_live_list function ERR: {e}')
+            logger.error("[-] Get Live list FAIL...")
 
     def get_detail_temp_list(self, mid, date):
-        debugPrint("[+] Get Detail Temp list run...")
+        logger.debug("[+] Get Detail Temp list run...")
         payload = {
                 "p_mid" : mid,
                 "p_time" : date
@@ -112,17 +112,17 @@ class infoGet:
                 res = json.loads(res.text)
                 if res['msg'] == 'success':
                     detail_datas = res['data']
-                    debugPrint("[+] Get Detail Temp list OK...")
+                    logger.debug("[+] Get Detail Temp list OK...")
                     return { 'data' : detail_datas }
                 else:
                     return { 'data' : ERRORCODE._NO_POST_DATA }
 
         except Exception as e:
-            print(f'get_detail_temp_list function ERR: {e}')
-            debugPrint("[-] Get Detail Temp list FAIL...")
+            logger.error(f'get_detail_temp_list function ERR: {e}')
+            logger.error("[-] Get Detail Temp list FAIL...")
 
     def cnu_parser(self, res, keys):
-        debugPrint("[+] CNU Parser run...")
+        logger.debug("[+] CNU Parser run...")
         result_buf = []
         try:
             bs = BeautifulSoup(res.text, 'html.parser')
@@ -130,11 +130,11 @@ class infoGet:
                 # tag = bs.find('td', attrs={'class': 'tdBody'}).find('tbody')
                 tag = bs.find('td', attrs={'class': 'tdBody'}).find('tbody')
             except Exception as e:
-                debugPrint("[-] HTML response has no body")
+                logger.error("[-] HTML response has no body")
                 return ERRORCODE._QUERY_FAIL
             
             if len(tag.find_all('tr')) == 0:
-                debugPrint("[+] NO searching data...")
+                logger.debug("[+] NO searching data...")
                 return ERRORCODE._NO_DATA
             
             for items in tag.find_all('tr'):
@@ -144,11 +144,11 @@ class infoGet:
                     for key, data in zip(keys, item):
                         data_format[key] = data.get_text()
                     result_buf.append(data_format)
-            debugPrint("[+] CNU Parser OK...")
+            logger.debug("[+] CNU Parser OK...")
             return result_buf
         except Exception as e:
-            print(f'cnu_parser function ERR: {e}')
-            debugPrint("[-] CNU Parser FAIL...")
+            logger.error(f'cnu_parser function ERR: {e}')
+            logger.error("[-] CNU Parser FAIL...")
 
     def post_list(self, p_mid, p_time):
         form_data = {
@@ -164,10 +164,10 @@ class infoGet:
             else:
                 return -1
         except Exception as e:
-            print(f'post_list function ERR: {e}')
+            logger.error(f'post_list function ERR: {e}')
 
     def get_dcu_id(self, apt_name):
-        debugPrint("[+] get_dcu_id run...")
+        logger.info("[+] get_dcu_id run...")
         try:
             qeury = f"{self.live_url}&p_did=&p_temp=48"
             res = requests.get(qeury, auth=self.auth)
@@ -179,19 +179,19 @@ class infoGet:
                     for items in tag.find_all('option'):
                         dcu_info = items.get_text()
                         if dcu_info.find(apt_name) != -1:
-                            debugPrint("[+] get_dcu_id OK...")
+                            logger.info("[+] get_dcu_id OK...")
                             return items['value']
                         
                 except Exception as e:
-                    debugPrint("[-] HTML response has no body")
+                    logger.error("[-] HTML response has no body")
                     return ERRORCODE._QUERY_FAIL
         except Exception as e:
-            print(f'get_dcu_id function ERR: {e}')
-            debugPrint("[-] get_dcu_id FAIL...")
+            logger.error(f'get_dcu_id function ERR: {e}')
+            logger.error("[-] get_dcu_id FAIL...")
 
     def dupli_chk(self, src):
         try:
-            debugPrint("[+] Duplication Check Run...")
+            logger.info("[+] Duplication Check Run...")
             sample1 = pd.read_excel("data/계량기_점검_교체_리스트_통합.xlsx", sheet_name='점검리스트', usecols='F,M')
             sample2 = pd.read_excel("data/계량기_점검_교체_리스트_통합.xlsx", sheet_name='요청리스트', usecols='D,H')
             read_data = pd.concat([sample1, sample2])
@@ -205,14 +205,14 @@ class infoGet:
                     else:
                         result['new'].append(target)
                 
-                debugPrint("[+] Duplication Check OK...")
+                logger.info("[+] Duplication Check OK...")
                 return result
             
             return ERRORCODE._DUPLI_FAIL
         
         except Exception as e:
-            print(f'dupli_chk function ERR: {e}')
-            debugPrint("[-] Duplication Check FAIL...")
+            logger.error(f'dupli_chk function ERR: {e}')
+            logger.error("[-] Duplication Check FAIL...")
 
 class meterSort:
     def __init__(self):
@@ -227,38 +227,42 @@ class meterSort:
             time_val = now.time().strftime("%H")
             temp_val = temp
             ratio_val = ratio
-            debugPrint("[+] Ratio monitoring sequence Run...")
+            logger.info("[+] Ratio monitoring sequence Run...")
 
             live_datas = self.info_get.get_ratio_list(date_val, 10, temp_val, ratio_val)
             if live_datas['data'] != ERRORCODE._NO_DATA:
                 self.slack_bot.sendRatioMsg(live_datas['data'], date_val, str(time_val), str(temp_val), str(ratio_val), url=live_datas['url'])
             else:
-                debugPrint("[+] Server No Data...")
+                logger.info("[+] Server No Data...")
             
-            debugPrint("[+] Ratio monitoring sequence OK...")
+            logger.info("[+] Ratio monitoring sequence OK...")
         except Exception as e:
-            debugPrint("[-] Ratio monitoring sequence FAIL...")
+            logger.error("[-] Ratio monitoring sequence FAIL...")
 
     def live_monitor_seq(self, temp):
-        # get date & time
-        now = datetime.now()
-        date_val = now.date().strftime("%Y-%m-%d")
-        time_val = now.time().strftime("%H:00:00")
-        temp_val = temp
-        
-        # time_val = "17:00:00"
+        try:
+            # get date & time
+            now = datetime.now()
+            date_val = now.date().strftime("%Y-%m-%d")
+            time_val = now.time().strftime("%H:00:00")
+            temp_val = temp
+            
+            # time_val = "17:00:00"
 
-        result_data = self.info_get.get_live_list(date_val, time_val, temp)
-        if result_data['data'] == ERRORCODE._NO_DATA:
-            pass
-        elif result_data['data'] == ERRORCODE._SEND_MSG_ERR:
-            pass
-        else:
-            filter_data = self.info_get.dupli_chk(result_data['data'])
-            debugPrint(filter_data)
-            self.slack_bot.sendLiveMsg(filter_data, date_val, time_val, str(temp_val), url=result_data['url'])
+            result_data = self.info_get.get_live_list(date_val, time_val, temp)
+            if result_data['data'] == ERRORCODE._NO_DATA:
+                pass
+            elif result_data['data'] == ERRORCODE._SEND_MSG_ERR:
+                pass
+            else:
+                filter_data = self.info_get.dupli_chk(result_data['data'])
+                logger.info(filter_data)
+                self.slack_bot.sendLiveMsg(filter_data, date_val, time_val, str(temp_val), url=result_data['url'])
+        except Exception as e:
+            logger.error(f'live_monitor_seq function ERR: {e}')
 
     def list_apt_seq(self, apt_name, temp, ratio, day_cnt):
+        logger.info('[+] list apartment seqeunce run...')
         try:
             result_data = []
             mid_data = []
@@ -285,13 +289,14 @@ class meterSort:
                                 result_data.append(time_data)
             if len(result_data) != 0:
                 filter_data = self.info_get.dupli_chk(result_data)
-                debugPrint(filter_data)
+                logger.info(filter_data)
                 self.slack_bot.sendRatioMsg(filter_data, now.date().strftime("%Y%m%d"), f"{day_cnt}일 치", str(temp_val), str(ratio_val))
             else:
                 self.slack_bot.sendRatioMsg({'new': [], 'before': []}, now.date().strftime("%Y%m%d"), f"{day_cnt}일 치", str(temp_val), str(ratio_val))
+            logger.info('[+] list apartment seqeunce OK...')
         except Exception as e:
-            print(f'list_apt_seq function ERR: {e}')
-            debugPrint("[-] List apartment sequence FAIL...")
+            logger.error(f'list_apt_seq function ERR: {e}')
+            logger.error("[-] List apartment sequence FAIL...")
 
     def test(self, apt_name, temp, ratio):
         
@@ -303,7 +308,7 @@ class meterSort:
         return time_datas
 
     def run(self, temp, ratio):
-        debugPrint("[+] CNU server sort Run...")
+        logger.info("[+] CNU server sort Run...")
         try:
             # ration sequence run
             # self.ratio_monitor_seq(temp, ratio)
@@ -312,10 +317,10 @@ class meterSort:
             self.live_monitor_seq(temp)
 
 
-            debugPrint("[+] CNU server sort OK...")
+            logger.info("[+] CNU server sort OK...")
         except Exception as e:
-            debugPrint("[-] CNU server sort FAIL...")
-            debugPrint(f"CNU server sort ERR: {e}")
+            logger.error("[-] CNU server sort FAIL...")
+            logger.error(f"CNU server sort ERR: {e}")
 
 
 if __name__ == '__main__':

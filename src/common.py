@@ -1,8 +1,22 @@
 from datetime import datetime
 import enum
-
+import logging
 
 debug_enable = True
+
+# create handler console & file
+logger = logging.getLogger('debug_log')
+formatter = logging.Formatter('[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)s] >> %(message)s')
+streamHandler = logging.StreamHandler()
+fileHandler = logging.FileHandler('./history.log')
+
+# set handler to instance
+streamHandler.setFormatter(formatter)
+fileHandler.setFormatter(formatter)
+logger.addHandler(streamHandler)
+logger.addHandler(fileHandler)
+
+logger.setLevel(level=logging.INFO)
 
 class ERRORCODE(enum.Enum):
     _SUCCESS = 1
@@ -41,5 +55,13 @@ def debugPrint(data):
         now = datetime.now()
         today = now.date().strftime("%y-%m-%d")
         today_time = now.time().strftime("%H:%M:%S")
-        print("{0} {1} > ".format(today, today_time), end="")
-        print(data)
+        logger.info(f"{today} {today_time} > {data}")
+        # print("{0} {1} > ".format(today, today_time), end="")
+        # print(data)
+
+def errPrint(data):
+    # get date & time
+    now = datetime.now()
+    today = now.date().strftime("%y-%m-%d")
+    today_time = now.time().strftime("%H:%M:%S")
+    logger.error(f"{today} {today_time} > {data}")

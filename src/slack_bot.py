@@ -35,18 +35,18 @@ class Bot:
                                 )
 
             if response.status_code == 200:
-                debugPrint("[+] Send message OK...")
+                logger.info("[+] Send message OK...")
             else:
-                debugPrint("[+] Response ERR: {0}...".format(response.status_code))
+                logger.info("[+] Response ERR: {0}...".format(response.status_code))
                 return ERRORCODE._SEND_MSG_FAIL
 
         except Exception as e:
-            debugPrint("[-] Main Send function FAIL...")
-            debugPrint("sendMsg funcing exception: {0}".format(e))
+            logger.error("[-] Main Send function FAIL...")
+            logger.error("sendMsg funcing exception: {0}".format(e))
 
     def sendRatioMsg(self, live_datas, date, time, temp, ratio, url=""):
         try:
-            debugPrint("[+] Send ratio message...")
+            logger.info("[+] Send ratio message run...")
             # load approval message form
             with open("src/msg_form.json", "rt", encoding='UTF8') as msg_f:
                 msg_form = json.load(msg_f)
@@ -84,14 +84,14 @@ class Bot:
 
 
                 self.sendMsg(msg_form)
-                debugPrint("[+] Send ratio message OK...")
+                logger.info("[+] Send ratio message OK...")
         except Exception as e:
-            debugPrint("[-] Send ratio message FAIL...")
-            debugPrint("sendRatioMsg funcing exception: {0}".format(e))
+            logger.error("[-] Send ratio message FAIL...")
+            logger.error("sendRatioMsg funcing exception: {0}".format(e))
 
     def sendLiveMsg(self, live_datas, date, time, temp, url=""):
         try:
-            debugPrint("[+] Send live message...")
+            logger.info("[+] Send live message...")
             # load approval message form
             with open("src/msg_form.json", "rt", encoding='UTF8') as msg_f:
                 msg_form = json.load(msg_f)
@@ -124,10 +124,10 @@ class Bot:
                     msg_form['attachments'][0]['blocks'][9]['elements'][0]['url'] = url
 
                 self.sendMsg(msg_form)
-                debugPrint("[+] Send live message OK...")
+                logger.info("[+] Send live message OK...")
         except Exception as e:
-            debugPrint("[-] Send live message FAIL...")
-            debugPrint("sendLiveMsg funcing exception: {0}".format(e))
+            logger.error("[-] Send live message FAIL...")
+            logger.error("sendLiveMsg funcing exception: {0}".format(e))
 
 if __name__ == '__main__':
     test_Bot = Bot()

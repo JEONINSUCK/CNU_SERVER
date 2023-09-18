@@ -58,13 +58,16 @@ async def webhook(request: Request):
         try:
             if body['command'] == '/settemp':
                 if body['text'] != '':
+                    logger.info('[+] set temp slash command enter')
                     temp = int(body['text'])
                     th_live_seq.start()
                     return f"temp set success: {temp}"
                 else:
+                    logger.info('[-] set temp slash command ERROR')
                     return {"status": f"temp set fail: {temp}"}
             if body['command'] == '/listapt':
                 if body['text'] != '':
+                    logger.info('[+] list apartment slash command enter')
                     input_data = body['text'].split(" ")
                     if len(input_data)  == 4:
                         th_list_apt_seq = threading.Thread(target=meter_so.list_apt_seq, args=(input_data[0], input_data[1], input_data[2], input_data[3]))
@@ -72,25 +75,26 @@ async def webhook(request: Request):
                         # meter_so.list_apt_seq(input_data[0], input_data[1], input_data[2], input_data[3])
                         return {"status": f"{input_data[0]}, {input_data[1]}, {input_data[2]}, {input_data[3]}"}
                     else:
+                        logger.info('[-] list apartment slash command ERROR')
                         return {"status": f"input value wrong: {body['text']}"}    
                 else:
                     return {"status": f"input value wrong: {body['text']}"}
         except Exception as e:
-            print(body)
-            debugPrint(f'body process err: {e}')
+            logger.error(body)
+            logger.error(f'body process err: {e}')
             return {"status": "body structure error"}
         
 
     except Exception as err:
-        print(await getBody(request))
-        debugPrint(f'could not print REQUEST: {err}')
+        logger.error(await getBody(request))
+        logger.error(f'could not print REQUEST: {err}')
         return {"status": "ERR"}
 
 
 def scheduler_th():
     global temp, ratio
 
-    debugPrint("[+] Scheduler run...")
+    logger.info("[+] Scheduler run...")
     meter_sort = meterSort()
     
     # to change the temp variable every time
@@ -103,10 +107,10 @@ def scheduler_th():
             schedule.run_pending()
             time.sleep(10)
     except KeyboardInterrupt:
-        debugPrint('Ctrl + C 중지 메시지 출력')
+        logger.error('Ctrl + C 중지 메시지 출력')
 
 def web_th():
-    print("[+] Web site run...")
+    logger.info("[+] Web site run...")
     uvicorn.run(app, host="0.0.0.0", port=20001)
 
 
