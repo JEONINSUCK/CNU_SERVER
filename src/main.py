@@ -8,6 +8,7 @@ import json
 import threading
 import uvicorn
 
+logger = Mylogger()
 app = FastAPI()
 temp = 48
 ratio = 1.0
@@ -50,7 +51,7 @@ async def webhook(request: Request):
         global temp
         web_t = webTool()
         meter_so = meterSort()
-        th_live_seq = threading.Thread(target=meter_so.run, args=(temp, ratio))
+        
         header = web_t.getHeader(request)
         parm = web_t.getParm(request)
         body = await getBody(request)
@@ -60,6 +61,7 @@ async def webhook(request: Request):
                 if body['text'] != '':
                     logger.info('[+] set temp slash command enter')
                     temp = int(body['text'])
+                    th_live_seq = threading.Thread(target=meter_so.run, args=(temp, ratio))
                     th_live_seq.start()
                     return f"temp set success: {temp}"
                 else:

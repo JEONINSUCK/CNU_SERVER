@@ -16,6 +16,8 @@ DEFUALT_TEMP = 45
 DEFUALT_RATIO = 1.0
 DEFUALT_CNT = 3
 
+logger = Mylogger()
+
 class infoGet:
     def __init__(self):
         self.temp_cnt_url = "http://211.170.156.163/temp/temperatureCount.php?"
@@ -181,6 +183,9 @@ class infoGet:
                         if dcu_info.find(apt_name) != -1:
                             logger.info("[+] get_dcu_id OK...")
                             return items['value']
+                    
+                    logger.info("[-] dcu_id not found...")
+                    return ERRORCODE._DCU_ID_NOT_FOUND
                         
                 except Exception as e:
                     logger.error("[-] HTML response has no body")
@@ -192,8 +197,8 @@ class infoGet:
     def dupli_chk(self, src):
         try:
             logger.info("[+] Duplication Check Run...")
-            sample1 = pd.read_excel("data/계량기_점검_교체_리스트_통합.xlsx", sheet_name='점검리스트', usecols='F,M')
-            sample2 = pd.read_excel("data/계량기_점검_교체_리스트_통합.xlsx", sheet_name='요청리스트', usecols='D,H')
+            sample1 = pd.read_excel("data/계량기_점검_교체_리스트_통합.xlsx", sheet_name='점검리스트', usecols='F')
+            sample2 = pd.read_excel("data/계량기_점검_교체_리스트_통합.xlsx", sheet_name='요청리스트', usecols='D')
             read_data = pd.concat([sample1, sample2])
 
             result = {'new': [], 'before': []}
@@ -208,11 +213,35 @@ class infoGet:
                 logger.info("[+] Duplication Check OK...")
                 return result
             
-            return ERRORCODE._DUPLI_FAIL
+            return ERRORCODE._NO_DATA
         
         except Exception as e:
             logger.error(f'dupli_chk function ERR: {e}')
             logger.error("[-] Duplication Check FAIL...")
+
+    def black_list_chk(self, src):
+        try:
+            logger.info("[+] Black list Check Run...")
+            sample = pd.read_excel("data/계량기_점검_교체_리스트_통합.xlsx", sheet_name='정상확인리스트', usecols='D')
+            
+            result = {'white': [], 'black': []}
+            if len(src) != 0:
+                for target in src:
+                    filter_data = sample[sample['미터 ID'].str.contains(target['mid'], na=False)]
+                    if len(filter_data) != 0:
+                        result['black'].append(target)
+                    else:
+                        result['white'].append(target)
+                
+                logger.debug(result)
+                logger.info("[+] Black list Check OK...")
+                return result
+            
+            return ERRORCODE._BLACK_CHK_FAIL
+
+        except Exception as e:
+            logger.error(f'black_list_chk function ERR: {e}')
+            logger.error("[-] Black list Check FAIL...")
 
 class meterSort:
     def __init__(self):
@@ -251,13 +280,18 @@ class meterSort:
 
             result_data = self.info_get.get_live_list(date_val, time_val, temp)
             if result_data['data'] == ERRORCODE._NO_DATA:
-                pass
+                logger.info(result_data)
             elif result_data['data'] == ERRORCODE._SEND_MSG_ERR:
-                pass
+                logger.info(result_data)
             else:
-                filter_data = self.info_get.dupli_chk(result_data['data'])
-                logger.info(filter_data)
-                self.slack_bot.sendLiveMsg(filter_data, date_val, time_val, str(temp_val), url=result_data['url'])
+                black_chk_data = self.info_get.black_list_chk(result_data['data'])
+                if len(black_chk_data['white']) != 0:
+                    filter_data = self.info_get.dupli_chk(black_chk_data['white'])
+                    logger.info(filter_data)
+                    self.slack_bot.sendLiveMsg(filter_data, date_val, time_val, str(temp_val), url=result_data['url'])
+                else:
+                    pass
+                
         except Exception as e:
             logger.error(f'live_monitor_seq function ERR: {e}')
 
@@ -270,7 +304,12 @@ class meterSort:
             now = datetime.now()
             temp_val = temp
             ratio_val = ratio
-            dcu_id = self.info_get.get_dcu_id(apt_name)
+            if apt_name != 'all':
+                dcu_id = self.info_get.get_dcu_id(apt_name)
+                if dcu_id == ERRORCODE._DCU_ID_NOT_FOUND:
+                    return ERRORCODE._DCU_ID_NOT_FOUND
+            else:
+                dcu_id = ""
 
             for i in range(int(day_cnt)):
                 date_val = now - timedelta(days=i)
@@ -283,10 +322,11 @@ class meterSort:
                     else:
                         for time_data in time_datas:
                             if time_data['mid'] in mid_data:
-                                continue
+                                self.update_list(time_data, result_data)
                             else:
                                 mid_data.append(time_data['mid'])
                                 result_data.append(time_data)
+
             if len(result_data) != 0:
                 filter_data = self.info_get.dupli_chk(result_data)
                 logger.info(filter_data)
@@ -297,6 +337,18 @@ class meterSort:
         except Exception as e:
             logger.error(f'list_apt_seq function ERR: {e}')
             logger.error("[-] List apartment sequence FAIL...")
+
+    def update_list(self, src, dst):
+        for i in range(len(dst)):
+            if dst[i]['mid'] == src['mid']:
+                if dst[i]['temp'] < src['temp']:
+                    logger.debug(f'list update\n{dst[i]}\n{src}')
+                    del dst[i]
+                    dst.append(src)
+                else:
+                    continue
+            else:
+                continue
 
     def test(self, apt_name, temp, ratio):
         
@@ -345,7 +397,5 @@ if __name__ == '__main__':
     # date_val = now.date().strftime("%Y-%m-%d")
     # time_val = now.time().strftime("%H:00:00")
     # print(info_get.get_live_list(date_val, time_val, 43))
-    sample_data = info_get.get_live_list('2023-09-16', '11:00:00', 40)['data']
-    sample_data.append({'mid' : 'A0537096323'})
-    sample_data.append({'mid' : 'A0537129033'})
-    print(info_get.dupli_chk(sample_data))
+
+    # print(info_get.dupli_chk(sample_data))

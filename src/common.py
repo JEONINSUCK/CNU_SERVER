@@ -2,21 +2,38 @@ from datetime import datetime
 import enum
 import logging
 
-debug_enable = True
 
-# create handler console & file
-logger = logging.getLogger('debug_log')
-formatter = logging.Formatter('[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)s] >> %(message)s')
-streamHandler = logging.StreamHandler()
-fileHandler = logging.FileHandler('./history.log')
+class Mylogger:
+    def __init__(self) -> None:
+        self.log = logging.getLogger('cnu_log')
+        self.formatter = logging.Formatter('[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)s] >> %(message)s')
+        self.streamHandler = logging.StreamHandler()
+        self.fileHandler = logging.FileHandler('./history.log')
+        self.streamHandler.setFormatter(self.formatter)
+        self.fileHandler.setFormatter(self.formatter)
 
-# set handler to instance
-streamHandler.setFormatter(formatter)
-fileHandler.setFormatter(formatter)
-logger.addHandler(streamHandler)
-logger.addHandler(fileHandler)
+    def info(self, data):
+        self.log.handlers.clear()
+        self.log.addHandler(self.streamHandler)
+        self.log.addHandler(self.fileHandler)
+        self.log.setLevel(level=logging.INFO)
 
-logger.setLevel(level=logging.INFO)
+        self.log.info(data)
+
+    def debug(self, data):
+        self.log.handlers.clear()
+        self.log.addHandler(self.fileHandler)
+        self.log.setLevel(level=logging.DEBUG)
+        
+        self.log.debug(data)
+
+    def error(self, data):
+        self.log.handlers.clear()
+        self.log.addHandler(self.streamHandler)
+        self.log.addHandler(self.fileHandler)
+        self.log.setLevel(level=logging.INFO)
+
+        self.log.error(data)
 
 class ERRORCODE(enum.Enum):
     _SUCCESS = 1
@@ -48,20 +65,11 @@ class ERRORCODE(enum.Enum):
     _NO_DATA = 27
     _NO_POST_DATA = 28
     _DUPLI_FAIL = 29
+    _DCU_ID_NOT_FOUND = 30
+    _BLACK_CHK_FAIL = 31
+    _TYPE_ERR = 32
     
-def debugPrint(data):
-    if debug_enable:
-        # get date & time
-        now = datetime.now()
-        today = now.date().strftime("%y-%m-%d")
-        today_time = now.time().strftime("%H:%M:%S")
-        logger.info(f"{today} {today_time} > {data}")
-        # print("{0} {1} > ".format(today, today_time), end="")
-        # print(data)
-
-def errPrint(data):
-    # get date & time
-    now = datetime.now()
-    today = now.date().strftime("%y-%m-%d")
-    today_time = now.time().strftime("%H:%M:%S")
-    logger.error(f"{today} {today_time} > {data}")
+if __name__ == '__main__':
+    Mylogger().info('info test')
+    Mylogger().debug('debug test')
+    Mylogger().error('error test')
