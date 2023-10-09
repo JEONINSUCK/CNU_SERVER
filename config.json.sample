@@ -1,0 +1,15 @@
+{
+    "AUTH" : {
+        "SERVER_ID" : "",
+        "SERVER_PW" : "",
+        "SLACK_OAUTH_TOKEN" : "",
+        "SLACK_ID" : "",
+        "SLACK_CHANNEL_NAME" : "",
+        "SLACK_WEBHOOK_APP_URL" : "",
+        "SLACK_WEBHOOK_CHENNEL_URL" : ""
+    },
+    
+    "CONF" : {
+        
+    }
+}

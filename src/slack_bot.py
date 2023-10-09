@@ -3,8 +3,11 @@ try:
     from common import *
 except Exception as e:
     from src.common import *
+
+import pandas as pd
 import json
 import requests
+import os
 
 SLACK_MSG_LIMIT = 3900
 
@@ -20,6 +23,30 @@ class Bot:
         self.slack_id = config['AUTH']['SLACK_ID']
         self.slack_channel_name = config['AUTH']['SLACK_CHANNEL_NAME']
         self.slack_webhook_chennel_url = config['AUTH']['SLACK_WEBHOOK_CHENNEL_URL']
+
+    def sendFile(self, file, comment):
+        sample_file = {
+            'file' : (f'{file}', open(f'{file}', 'rb'), 'xlsx')
+        }
+
+        payload = {
+            'initial_comment' : comment,
+            'filename' : os.path.basename(file),
+            'token' : self.slack_token,
+            'channels' : [self.slack_channel_name]
+        }
+
+        response = requests.post(
+                            url="https://slack.com/api/files.upload",
+                            data=payload,
+                            files=sample_file
+        )
+        if response.status_code == 200:
+            logger.info("[+] Send message OK...")
+            print(response.text)
+        else:
+            logger.info("[+] Response ERR: {0}...".format(response.status_code))
+            return ERRORCODE._SEND_MSG_FAIL
 
     def sendMsg(self, blocks_data):
         try:
@@ -89,7 +116,11 @@ class Bot:
                     self.sendMsg(msg_form)
                     logger.info("[+] Send ratio message OK...")
                 else:
-                    pass
+                    logger.info("[-] Live message too long...")
+                    if self.excel_store(live_datas, f'{date}_{time}_{temp}_{ratio}_ratio_data') != ERRORCODE._TYPE_ERR:
+                        logger.info("[+] Store data to excel OK...")
+                    else:
+                        logger.info("[-] Store data to excel FAIL...")
         except Exception as e:
             logger.error("[-] Send ratio message FAIL...")
             logger.error("sendRatioMsg funcing exception: {0}".format(e))
@@ -133,7 +164,15 @@ class Bot:
                     self.sendMsg(msg_form)
                     logger.info("[+] Send live message OK...")
                 else:
-                    pass
+                    logger.info("[-] Live message too long...")
+                    file_name = f'data/{date}_{time}_{temp}_live_data.xlsx'
+                    if self.excel_store(live_datas, file_name) != ERRORCODE._TYPE_ERR:
+                        new_num = len(live_data['new'])
+                        before_num = len(live_data['before'])
+                        self.sendFile(file_name, f'new data: {new_num}, before data: {before_num}')
+                        logger.info("[+] Store data to excel OK...")
+                    else:
+                        logger.info("[-] Store data to excel FAIL...")
         except Exception as e:
             logger.error("[-] Send live message FAIL...")
             logger.error("sendLiveMsg funcing exception: {0}".format(e))
@@ -174,7 +213,24 @@ class Bot:
             logger.error("[-] Count text FAIL...")
             logger.error("count_text funcing exception: {0}".format(e))
 
-    # def excel_store()
+    def excel_store(self, data: dict, path):
+        try:
+            if isinstance(data, dict):
+                with pd.ExcelWriter(path) as writer:
+                    if len(data['new']) != 0:
+                        new_data = pd.DataFrame(data['new'])
+                        new_data = new_data.drop([new_data.columns[0]], axis=1)
+                        new_data.to_excel(writer, sheet_name='New')
+                    if len(data['before']) != 0:
+                        before_data = pd.DataFrame(data['before'])
+                        before_data = before_data.drop([before_data.columns[0]], axis=1)
+                        before_data.to_excel(writer, sheet_name='Before')
+            else:
+                return ERRORCODE._TYPE_ERR
+        except Exception as e:
+            logger.error("[-] Excel Store FAIL...")
+            logger.error("excel_store funcing exception: {0}".format(e))
+        
 
 if __name__ == '__main__':
     test_Bot = Bot()
@@ -294,6 +350,8 @@ if __name__ == '__main__':
 
 
 
-    test_Bot.sendLiveMsg(test_data, date="23-08-21", time="11:00:00", temp="40")
+    # test_Bot.sendLiveMsg(test_data, date="23-08-21", time="11:00:00", temp="40")
     # print(test_Bot.count_text(test_data))
+    # test_Bot.excel_store(test_data, 'sample')
+    test_Bot.sendFile('data/20230926_5일_치_35_1.0_ratio_data.xlsx', f'')
     

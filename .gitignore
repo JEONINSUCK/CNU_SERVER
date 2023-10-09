@@ -3,3 +3,5 @@ __pycache__/
 test.json
 nohup.out
 history.log
+config.json
+data/*

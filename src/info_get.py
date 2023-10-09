@@ -9,8 +9,10 @@ import time
 from datetime import datetime, timedelta
 from common import *
 
-USERNAME = "admin"
-PASSOWRD = "cnuasdcu"
+# load config.json data
+with open("config.json", "r", encoding="utf-8-sig") as f:
+    config = json.load(f)
+
 DEFUALT_DAY = 1
 DEFUALT_TEMP = 45
 DEFUALT_RATIO = 1.0
@@ -27,7 +29,7 @@ class infoGet:
         self.ratio_url = "http://211.170.156.163/temp/RDB2_ratio.php?"
         self.live_url = "http://211.170.156.163/temp/temperature.php?"
         self.session = requests.Session()
-        self.auth = requests.auth.HTTPBasicAuth(USERNAME, PASSOWRD)
+        self.auth = requests.auth.HTTPBasicAuth(config['AUTH']['SERVER_ID'], config['AUTH']['SERVER_PW'])
 
     def get_cnt_list(self, p_did="", p_day=DEFUALT_DAY, p_temp=DEFUALT_TEMP, p_cnt=DEFUALT_CNT):
         keys = ['num', 'name', 'mid', 'cnt']

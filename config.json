@@ -1,5 +1,7 @@
 {
     "AUTH" : {
+        "SERVER_ID" : "admin",
+        "SERVER_PW" : "cnuasdcu",
         "SLACK_OAUTH_TOKEN" : "xoxb-5755808743095-5794066543936-YlJcpdiZ7pukPgPkLXmvX3pK",
         "SLACK_ID" : "A05NN7GDY91",
         "SLACK_CHANNEL_NAME" : "server_push",
